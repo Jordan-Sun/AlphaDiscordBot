@@ -83,6 +83,10 @@ class sheetsCog(commands.Cog):
         sheet = self.service.spreadsheets().values().update(spreadsheetId=self.sheet_id, range=range, body={'values': values}, valueInputOption=vaule_input_option)
         sheet.execute()
     
+    def __update_sheet_all(self, guild: discord.Guild, data: list[list[str]]) -> None:
+        # Updates the entire sheet.
+        self.__update_sheet(str(guild.id), data)
+
     def __update_sheet_header(self, guild: discord.Guild, header: list[str]) -> None:
         # Updates the header in the spreadsheet.
         self.__update_sheet(str(guild.id) + '!1:1', [header])
