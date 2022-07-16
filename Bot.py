@@ -23,17 +23,17 @@ class AlphaBot(commands.Bot):
 
     async def sync_commands(self, guild):
         # Send a message to the general channel if it exists and the bot could send messages.
+        message = None
         general = find(lambda x: x.name == 'general',  guild.text_channels)
         if general and general.permissions_for(guild.me).send_messages:
-            await general.send('Enhancing {} with my magic power!'.format(guild.name))
+            message = await general.send('Enhancing {} with my magic power!'.format(guild.name))
         # Sync the commands for the guild.
         self.tree.copy_global_to(guild=guild)
         await self.tree.sync(guild = guild)
         logging.info('Synced commands for {0}.'.format(guild.name))
-        # Send a message when the command tree is synced.
-        general = find(lambda x: x.name == 'general',  guild.text_channels)
-        if general and general.permissions_for(guild.me).send_messages:
-            await general.send('Enhanced {} with my magic power!'.format(guild.name))
+        # Edit the message when the command tree is synced.
+        if message:
+            await message.edit(content='**Enhanced** {} with my magic power!'.format(guild.name))
 
     async def setup_hook(self):
         # Load the cogs.
