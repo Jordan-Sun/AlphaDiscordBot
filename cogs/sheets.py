@@ -223,7 +223,7 @@ class sheetsCog(commands.Cog):
         return
 
     # /edit command
-    @app_commands.command(name="edit", description="edit the attribute of an member")
+    @app_commands.command(name="edit", description="edit the attribute of a member")
     async def edit(self, interaction: discord.Interaction, name: str, attribute: str, value: str) -> None:
         # Check if the user has the role.
         if not sheetsCog.__is_sheet_manager(interaction.user):
@@ -247,6 +247,32 @@ class sheetsCog(commands.Cog):
         await interaction.response.send_message("Could not find the member in the sheet.", ephemeral=True)
         return
 
+    # /multiedit command
+    @app_commands.command(name="multiedit", description="edit the attributes of a member, separated by commas, use '~' to represent an unchanged value")
+    async def multiedit(self, interaction: discord.Interaction, name: str, attributes: str) -> None:
+        # Check if the user has the role.
+        if not sheetsCog.__is_sheet_manager(interaction.user):
+            await interaction.response.send_message("You do not have the permission for managing the sheet.", ephemeral=True)
+            return
+        # Check if the name is in the sheet.
+        sheet = self.__get_sheet_data(interaction.guild)
+        attributes_row = attributes.split(',')
+        for row in sheet:
+            if row and row[0] == name:
+                # If the name is in the sheet, edit the attribute.
+                for index in range(len(attributes_row)):
+                    # If the new value is '~', do not change the value.
+                    if attributes_row[index] == '~':
+                        continue
+                    # If the new value is not '~', edit the attribute.
+                    row[index+1] = attributes_row[index]
+                self.__update_sheet_data(interaction.guild, sheet)
+                await interaction.response.send_message("Attributes have been edited.", ephemeral=True)
+                return
+        # Otherwise, send error message.
+        await interaction.response.send_message("Could not find the member in the sheet.", ephemeral=True)
+        return
+
     async def __send_long_message(self, interaction: discord.Interaction, message: str, ephemeral: bool = True) -> None:
         # Send a long message as an attachment instead.
         await interaction.response.send_message("Message sent as attachment instead.", file=discord.File(io.StringIO(message), filename="tmp.txt"), ephemeral=ephemeral)
@@ -263,6 +289,19 @@ class sheetsCog(commands.Cog):
         sheet = self.__get_sheet_all(interaction.guild)
         # Send the sheet data.
         await self.__send_long_message(interaction, sheetsCog.__sheet_to_string(sheet), ephemeral)
+        return
+
+    # /attributes command
+    @app_commands.command(name="attributes", description="list all attributes")
+    async def attributes(self, interaction: discord.Interaction, ephemeral: bool = True) -> None:
+        # Check if the user has the role.
+        if not sheetsCog.__is_sheet_manager(interaction.user):
+            await interaction.response.send_message("You do not have the permission for managing the sheet.", ephemeral=True)
+            return
+        # Get the sheet header.
+        header = self.__get_sheet_header(interaction.guild)
+        # Send the sheet header.
+        await interaction.response.send_message(interaction, sheetsCog.__sheet_to_string(header), ephemeral)
         return
 
     # /show command
