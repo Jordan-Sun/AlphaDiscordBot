@@ -128,13 +128,13 @@ class sheetsCog(commands.Cog):
         # Check if the name is in the sheet.
         sheet = self.__get_sheet_data(interaction.guild)
         for row in sheet:
-            if row and row[0] == name:
+            if row and row[0].lower() == name.lower():
                 # If the name is in the sheet, send error message.
-                await interaction.response.send_message("The member is already in the sheet.", ephemeral=True)
+                await interaction.response.send_message(name + " is already in the sheet.", ephemeral=True)
                 return
         # Otherwise, add the name to the sheet.
         self.__append_sheet_row(interaction.guild, [name])
-        await interaction.response.send_message("The member has been added to the sheet.", ephemeral=True)
+        await interaction.response.send_message(name + " has been added to the sheet.", ephemeral=True)
         return
 
     # /remove command
@@ -147,11 +147,11 @@ class sheetsCog(commands.Cog):
         # Check if the name is in the sheet.
         sheet = self.__get_sheet_data(interaction.guild)
         newsheet = []
-        found = 0
+        found = False
         for row in sheet:
-            if row and row[0] == name:
+            if row and row[0].lower() == name.lower():
                 # If is the name, skip it.
-                found += 1
+                found = True
             else:
                 # If not the name, add the row to the new sheet.
                 newsheet.append(row)
@@ -160,10 +160,10 @@ class sheetsCog(commands.Cog):
             for _ in range(found):
                 newsheet.append([''])
             self.__update_sheet_data(interaction.guild, newsheet)
-            await interaction.response.send_message("Removed the member from the sheet.", ephemeral=True)
+            await interaction.response.send_message("Removed " + name + " from the sheet.", ephemeral=True)
         else:
             # Otherwise, send error message.
-            await interaction.response.send_message("Could not find the member in the sheet.", ephemeral=True)
+            await interaction.response.send_message("Could not find " + name + " in the sheet.", ephemeral=True)
         return
 
     @staticmethod
@@ -234,17 +234,17 @@ class sheetsCog(commands.Cog):
         sheet = self.__get_sheet_data(interaction.guild)
         if attribute not in header:
             # If the attribute is not in the sheet, send error message.
-            await interaction.response.send_message("The attribute is not in the sheet.", ephemeral=True)
+            await interaction.response.send_message(name + "'s attribute is not in the sheet.", ephemeral=True)
             return
         for row in sheet:
-            if row and row[0] == name:
+            if row and row[0].lower() == name.lower():
                 # If the name is in the sheet, edit the attribute.
                 row[header.index(attribute)] = value
                 self.__update_sheet_data(interaction.guild, sheet)
-                await interaction.response.send_message("The attribute has been edited.", ephemeral=True)
+                await interaction.response.send_message(name + "'s attribute has been edited.", ephemeral=True)
                 return
         # Otherwise, send error message.
-        await interaction.response.send_message("Could not find the member in the sheet.", ephemeral=True)
+        await interaction.response.send_message("Could not find " + name + " in the sheet.", ephemeral=True)
         return
 
     # /multiedit command
@@ -258,7 +258,7 @@ class sheetsCog(commands.Cog):
         sheet = self.__get_sheet_data(interaction.guild)
         attributes_row = attributes.split(',')
         for row in sheet:
-            if row and row[0] == name:
+            if row and row[0].lower() == name.lower():
                 # If the name is in the sheet, edit the attribute.
                 for index in range(len(attributes_row)):
                     # If the new value is '~', do not change the value.
@@ -267,15 +267,15 @@ class sheetsCog(commands.Cog):
                     # If the new value is not '~', edit the attribute.
                     row[index+1] = attributes_row[index]
                 self.__update_sheet_data(interaction.guild, sheet)
-                await interaction.response.send_message("Attributes have been edited.", ephemeral=True)
+                await interaction.response.send_message(name + "'s attributes have been edited.", ephemeral=True)
                 return
         # Otherwise, send error message.
-        await interaction.response.send_message("Could not find the member in the sheet.", ephemeral=True)
+        await interaction.response.send_message("Could not find " + name + " in the sheet.", ephemeral=True)
         return
 
     async def __send_long_message(self, interaction: discord.Interaction, message: str, ephemeral: bool = True) -> None:
         # Send a long message as an attachment instead.
-        await interaction.response.send_message("Message sent as attachment instead.", file=discord.File(io.StringIO(message), filename="tmp.txt"), ephemeral=ephemeral)
+        await interaction.response.send_message("Message sent as attachment instead.", file=discord.File(io.StringIO(message), filename="sheet.csv"), ephemeral=ephemeral)
         return
 
     # /list command
@@ -315,7 +315,7 @@ class sheetsCog(commands.Cog):
         sheet = self.__get_sheet_data(interaction.guild)
         # Find the name in the sheet.
         for row in sheet:
-            if row and row[0] == name:
+            if row and row[0].lower() == name.lower():
                 # If the name is in the sheet, send the info.
                 await self.__send_long_message(interaction, sheetsCog.__row_to_string(row), ephemeral)
                 return
