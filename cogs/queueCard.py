@@ -58,17 +58,20 @@ class clearButton(discord.ui.Button):
             else:
                 await interaction.response.send_message('Queue card not found.', ephemeral=True)
 
-class removeTopButton(discord.ui.Button):
+class removeDropdown(discord.ui.Select):
     def __init__(self):
-        super().__init__(style=discord.ButtonStyle.secondary, label='Remove Top')
+        options = []
+        for position in range(len(self.view.members)):
+            options.append(discord.SelectOption(label=self.view.members[position][0].display_name, value=position))
+        super().__init__(placeholder='Remove', options=options)
     
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.guild_permissions.administrator:
             if self.view.members:
-                self.view.members.pop(0)
+                self.view.members.pop(self.view.selected)
                 success = await self.view.update()
                 if success:
-                    await interaction.response.send_message('Top member has been removed.', ephemeral=True)
+                    await interaction.response.send_message('Member has been removed.', ephemeral=True)
                 else:
                     await interaction.response.send_message('Queue card not found.', ephemeral=True)
             else:
@@ -82,10 +85,11 @@ class queueCardView(discord.ui.View):
         self.length = length
         self.members = []
         self.locked = False
-        self.add_item(joinButton())
-        self.add_item(lockButton())
-        self.add_item(clearButton())
-    
+        self.always_show = [joinButton(), lockButton()]
+        self.show_if_empty = [clearButton()]
+        for button in self.always_show:
+            self.add_item(button)
+
     async def update(self) -> bool:
         if self.message is None:
             return False
