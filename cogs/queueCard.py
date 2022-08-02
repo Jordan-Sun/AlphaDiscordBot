@@ -58,6 +58,22 @@ class clearButton(discord.ui.Button):
             else:
                 await interaction.response.send_message('Queue card not found.', ephemeral=True)
 
+class removeTopButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(style=discord.ButtonStyle.secondary, label='Remove Top')
+    
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.guild_permissions.administrator:
+            if self.view.members:
+                self.view.members.pop(0)
+                success = await self.view.update()
+                if success:
+                    await interaction.response.send_message('Top member has been removed.', ephemeral=True)
+                else:
+                    await interaction.response.send_message('Queue card not found.', ephemeral=True)
+            else:
+                await interaction.response.send_message('Queue is empty.', ephemeral=True)
+
 class queueCardView(discord.ui.View):
     def __init__(self, title: str, message: discord.Message, length: int = None):
         super().__init__(timeout=None)
