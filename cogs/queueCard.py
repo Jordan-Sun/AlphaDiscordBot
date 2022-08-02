@@ -58,7 +58,7 @@ class clearButton(discord.ui.Button):
             else:
                 await interaction.response.send_message('Queue card not found.', ephemeral=True)
 
-class removeDropdown(discord.ui.Select):
+""" class removeDropdown(discord.ui.Select):
     def __init__(self):
         options = []
         for position in range(len(self.view.members)):
@@ -75,7 +75,7 @@ class removeDropdown(discord.ui.Select):
                 else:
                     await interaction.response.send_message('Queue card not found.', ephemeral=True)
             else:
-                await interaction.response.send_message('Queue is empty.', ephemeral=True)
+                await interaction.response.send_message('Queue is empty.', ephemeral=True) """
 
 class queueCardView(discord.ui.View):
     def __init__(self, title: str, message: discord.Message, length: int = None):
@@ -85,8 +85,8 @@ class queueCardView(discord.ui.View):
         self.length = length
         self.members = []
         self.locked = False
-        self.always_show = [joinButton(), lockButton()]
-        self.show_if_empty = [clearButton()]
+        self.always_show = [joinButton(), lockButton(), clearButton()]
+        # self.constant_update = []
         for button in self.always_show:
             self.add_item(button)
 
@@ -100,6 +100,10 @@ class queueCardView(discord.ui.View):
             title = f'{self.title}'
         card = discord.Embed(title=title, color=0x00ff00)
         if self.members:
+            # for button in self.constant_update:
+                # self.remove_item(button)
+            # self.add_item(removeDropdown())
+
             if self.length is None:
                 lengthText = f'Length: {len(self.members)}'
             else:
