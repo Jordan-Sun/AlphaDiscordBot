@@ -8,9 +8,6 @@ class joinButton(discord.ui.Button):
         super().__init__(style=discord.ButtonStyle.secondary, label='Join/Leave')
 
     async def callback(self, interaction: discord.Interaction):
-        if self.view.locked:
-            await interaction.response.send_message('This queue is locked.', ephemeral=True)
-            return
         for member in self.view.members:
             if member[0] == interaction.user:
                 self.view.members.remove(member)
@@ -20,6 +17,9 @@ class joinButton(discord.ui.Button):
                 else:
                     await interaction.response.send_message('Queue card not found.', ephemeral=True)
                 return
+        if self.view.locked:
+            await interaction.response.send_message('This queue is locked.', ephemeral=True)
+            return
         if self.view.length and len(self.view.members) >= self.view.length:
             await interaction.response.send_message('Queue is full.', ephemeral=True)
             return
