@@ -257,10 +257,16 @@ class sheetsCog(commands.Cog):
         # Check if the name is in the sheet.
         sheet = self.__get_sheet_data(interaction.guild)
         attributes_row = attributes.split(',')
+        num_attributes = len(attributes_row)
         for row in sheet:
             if row and row[0].lower() == name.lower():
-                # If the name is in the sheet, edit the attribute.
-                for index in range(len(attributes_row)):
+                num_columns = len(row)
+                # If the row has less attributes than the number of attributes, append empty cells.
+                if num_attributes >= num_columns:
+                    for _ in range(num_attributes - num_columns + 1):
+                        row.append('')
+                # If the name is in the sheet, edit the attributes.
+                for index in range(num_attributes):
                     # If the new value is '~', do not change the value.
                     if attributes_row[index] == '~':
                         continue
