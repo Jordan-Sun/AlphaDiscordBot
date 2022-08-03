@@ -1,4 +1,6 @@
-import datetime
+import asyncio
+import logging
+import time
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -8,23 +10,29 @@ class joinButton(discord.ui.Button):
         super().__init__(style=discord.ButtonStyle.secondary, label='Join/Leave')
 
     async def callback(self, interaction: discord.Interaction):
+        # Check if the user is in the queue
         for member in self.view.members:
             if member[0] == interaction.user:
+                # Remove the user from the queue
                 self.view.members.remove(member)
-                success = await self.view.update()
+                success = self.view.update()
                 if success:
                     await interaction.response.send_message(f'{interaction.user.mention} has left the queue.', ephemeral=True)
                 else:
                     await interaction.response.send_message('Queue card not found.', ephemeral=True)
                 return
+        # Check if the queue is locked
         if self.view.locked:
             await interaction.response.send_message('This queue is locked.', ephemeral=True)
             return
+        # Check if the queue is full
         if self.view.length and len(self.view.members) >= self.view.length:
             await interaction.response.send_message('Queue is full.', ephemeral=True)
             return
-        self.view.members.append((interaction.user, datetime.datetime.now()))
-        success = await self.view.update()
+        # Add the user to the queue
+        self.view.members.append((interaction.user, time.time()))
+        # Update the queue card
+        success = self.view.update()
         if success:
             await interaction.response.send_message(f'{interaction.user.mention} has joined the queue.', ephemeral=True)
         else:
@@ -36,14 +44,17 @@ class lockButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.guild_permissions.administrator:
-            if self.view.locked:
-                self.view.locked = False
-                await self.view.update()
-                await interaction.response.send_message('Queue is now unlocked.', ephemeral=True)
+            self.view.locked = not self.view.locked
+            success = self.view.update()
+            if success:
+                if self.view.locked:
+                    await interaction.response.send_message('Queue is now locked.', ephemeral=True)
+                else:
+                    await interaction.response.send_message('Queue is now unlocked.', ephemeral=True)
             else:
-                self.view.locked = True
-                await self.view.update()
-                await interaction.response.send_message('Queue is now locked.', ephemeral=True)
+                await interaction.response.send_message('Queue card not found.', ephemeral=True)
+        else:
+            await interaction.response.send_message('You do not have permission to use this command.', ephemeral=True)
         
 class clearButton(discord.ui.Button):
     def __init__(self):
@@ -52,11 +63,13 @@ class clearButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.guild_permissions.administrator:
             self.view.members = []
-            success = await self.view.update()
+            success = self.view.update()
             if success:
                 await interaction.response.send_message('Queue has been cleared.', ephemeral=True)
             else:
                 await interaction.response.send_message('Queue card not found.', ephemeral=True)
+        else:
+            await interaction.response.send_message('You do not have permission to use this command.', ephemeral=True)
 
 """ class removeDropdown(discord.ui.Select):
     def __init__(self):
@@ -69,13 +82,15 @@ class clearButton(discord.ui.Button):
         if interaction.user.guild_permissions.administrator:
             if self.view.members:
                 self.view.members.pop(self.view.selected)
-                success = await self.view.update()
+                success = self.view.update()
                 if success:
                     await interaction.response.send_message('Member has been removed.', ephemeral=True)
                 else:
                     await interaction.response.send_message('Queue card not found.', ephemeral=True)
             else:
-                await interaction.response.send_message('Queue is empty.', ephemeral=True) """
+                await interaction.response.send_message('Queue is empty.', ephemeral=True)
+        else:
+            await interaction.response.send_message('You do not have permission to use this command.', ephemeral=True) """
 
 class queueCardView(discord.ui.View):
     def __init__(self, title: str, message: discord.Message, length: int = None):
@@ -87,13 +102,11 @@ class queueCardView(discord.ui.View):
         self.locked = False
         self.always_show = [joinButton(), lockButton(), clearButton()]
         # self.constant_update = []
+        self.update_scheduled = False
         for button in self.always_show:
             self.add_item(button)
-
-    async def update(self) -> bool:
-        if self.message is None:
-            return False
-        
+    
+    async def _update(self):
         if self.locked:
             title = f'{self.title} 🔒'
         else:
@@ -110,10 +123,24 @@ class queueCardView(discord.ui.View):
                 lengthText = f'Length: {len(self.members)}/{self.length}'
             queueText = ''
             for position in range(len(self.members)):
-                queueText += f'**{position+1}:** `{self.members[position][1].strftime("%H:%M")}` {self.members[position][0].display_name} {self.members[position][0].mention}\n'
+                queueText += f'**{position+1}:** <t:{str(int(self.members[position][1]))}:t> {self.members[position][0].display_name} {self.members[position][0].mention}\n'
             card.add_field(name=lengthText, value=queueText, inline=False)
         await self.message.edit(embed=card)
+        self.update_scheduled = False
+
+    def update(self) -> bool:
+        if self.message is None:
+            return False
+        elif not self.update_scheduled:
+            self.update_scheduled = True
+            asyncio.create_task(self._update())
         return True
+
+    async def close(self):
+        if self.message is not None:
+            await self.message.delete()
+            self.message = None
+        super().close()
     
 
 class queueCardCog(commands.Cog):
